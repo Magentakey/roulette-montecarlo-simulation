@@ -31,7 +31,7 @@ Aplikasi ini menyediakan dua mode simulasi komputasional interaktif:
 
 ### 2. 🎮 Mode 2: Mode Interaktif / Real-Time Game
 
-* **Visualisasi Papan Roulette:** Sorotan (*highlight*) angka keluar secara dinamis pada papan angka $0$–$36$.
+* **Visualisasi Papan Roulette:** Sorotan (*highlight*) angka keluar secara dinamis pada papan angka $0$ sampai $36$.
 * **Monitoring Risiko Kebangkrutan:** Indikator rasio ukuran taruhan terhadap sisa modal pemain secara *real-time*.
 * **Histori Transaksi:** Pencatatan performa ronde demi ronde secara mendetail.
 
