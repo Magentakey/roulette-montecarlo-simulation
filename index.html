@@ -216,6 +216,7 @@
                 <div class="input-group">
                     <label>Sisa Modal saat ini ($):</label>
                     <input type="number" id="m2_modal" value="250" readonly>
+                    <small style="color:var(--text-muted); font-size:12px;">Modal awal (konstan): <strong id="m2_const_note" style="color:var(--accent-gold)">$250</strong></small>
                 </div>
                 <div class="input-group">
                     <label>Pasang Taruhan (Merah) ($):</label>
@@ -225,11 +226,13 @@
 
                 <div id="m2_res" class="result-summary" style="display:none; margin-top:12px;">
                     <b>Status Ronde Terakhir:</b>
+                    <div class="stat-row"><span>Modal Awal (Konstan):</span> <strong id="m2_modal_awal" style="color:var(--accent-gold)">$250</strong></div>
                     <div class="stat-row"><span>Angka Keluar:</span> <strong id="m2_angka">-</strong></div>
                     <div class="stat-row"><span>Hasil Ronde Ini:</span> <strong id="m2_status">-</strong></div>
                     <div class="stat-row"><span>Total Ronde (Game):</span> <strong id="m2_total_round">0</strong></div>
                     <div class="stat-row"><span>Total Win (Menang):</span> <strong id="m2_total_win" style="color:var(--accent-green)">0</strong></div>
                     <div class="stat-row"><span>Total Lose (Kalah):</span> <strong id="m2_total_lose" style="color:var(--accent-red)">0</strong></div>
+                    <div class="stat-row"><span>Selisih dari Modal Awal:</span> <strong id="m2_selisih">$0</strong></div>
                     <div class="stat-row"><span>Risiko Kebangkrutan:</span> <strong id="m2_risk" style="color:var(--accent-gold)">-</strong></div>
                 </div>
             </div>
@@ -261,11 +264,15 @@
         let chartInstance = null;
         let currentMode = 1;
         
+        // KONSTANTA MODE 2
+        // Modal awal Mode 2 (nilai tetap; tidak berubah selama sesi berjalan)
+        const MODE2_MODAL_AWAL = 250;
+
         // Tracking Mode 2
         let m2_round = 0;
         let m2_wins = 0;
         let m2_loses = 0;
-        let mode2DataY = [250];
+        let mode2DataY = [MODE2_MODAL_AWAL];
         let mode2DataX = [0];
 
         function initBoard() {
@@ -440,6 +447,11 @@
             document.getElementById('m2_total_win').innerText = m2_wins;
             document.getElementById('m2_total_lose').innerText = m2_loses;
 
+            let selisih = modal - MODE2_MODAL_AWAL;
+            let elSelisih = document.getElementById('m2_selisih');
+            elSelisih.innerText = (selisih >= 0 ? "+$" : "-$") + Math.abs(selisih);
+            elSelisih.style.color = selisih >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+
             let ratio = bet / modal;
             let riskText = "Sangat Rendah (<10%)";
             if (ratio > 0.2) riskText = "Tinggi (>20% Modal)";
@@ -458,6 +470,10 @@
 
         window.onload = function() {
             initBoard();
+            // Terapkan konstanta modal awal Mode 2 ke tampilan
+            document.getElementById('m2_modal').value = MODE2_MODAL_AWAL;
+            document.getElementById('m2_const_note').innerText = "$" + MODE2_MODAL_AWAL;
+            document.getElementById('m2_modal_awal').innerText = "$" + MODE2_MODAL_AWAL;
             resetChart();
         };
     </script>
