@@ -30,7 +30,7 @@ Aplikasi (`index.html`) menyediakan dua mode simulasi interaktif:
 * **Pengujian jumlah putaran besar:** perulangan hingga N putaran (default 10.000) dalam hitungan milidetik; simulasi berhenti lebih awal jika modal < taruhan.
 * **Parameter yang dapat diatur:** Modal Awal, Taruhan per Ronde, dan Total Target Putaran (N).
 * **Keluaran:** Total Ronde Berjalan, *Total Win*, *Total Lose*, Modal Akhir, dan *Calculated House Edge*.
-* **Grafik kartesius:** kurva fluktuasi modal (*Equity Curve*) berbasis *Chart.js*, diambil dari sekitar 100 titik sampel agar efisien.
+* **Grafik kartesius:** kurva fluktuasi modal (*Equity Curve*) berbasis *Chart.js*, diambil dari sekitar 100 titik sampel (satu titik tiap N/100 putaran) agar efisien, sehingga titik terakhir grafik bisa belum menunjukkan modal akhir yang sebenarnya jika simulasi berhenti di antara dua titik sampel.
 
 ### 2. 🎮 Mode 2: Mode Interaktif / Real-Time Game
 
@@ -68,8 +68,8 @@ $$\text{House Edge (\%)} = \left( \frac{\text{Modal Awal} - \text{Modal Akhir}}{
 
 | Pengujian | Hasil |
 |---|---|
-| Mode 1, satu sesi (modal $1000, taruhan $10, N = 10.000) | 8.810 ronde, 4.355 menang, 4.455 kalah, modal akhir $0, *House Edge* 1,14% |
-| Mode 2, satu sesi (modal awal konstan $250) | 117 ronde, 57 menang, 60 kalah, modal akhir $220 |
+| Mode 1, satu sesi (modal $1000, taruhan $10, N = 10.000) | 9.794 ronde, 4.847 menang, 4.947 kalah, modal akhir $0, *House Edge* 1,02% |
+| Mode 2, satu sesi (modal awal konstan $250) | 340 ronde, 174 menang, 166 kalah, modal akhir $330 (selisih +$80) |
 | 10.000 sesi dengan logika Mode 1 | 98,06% bangkrut; median 3.062 ronde; *House Edge* gabungan 2,73% |
 | Galat *House Edge* tanpa batas kebangkrutan | ±10% (N = 100) menyusut menjadi ±0,1% (N = 1.000.000) |
 | Uji *chi-square* keseragaman `Math.random()` (1.000.000 putaran) | χ² = 23,52 (df 36), p = 0,946 |
