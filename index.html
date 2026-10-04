@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Numerik Monte Carlo - European Roulette</title>
+    <!-- Library Chart.js dari CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;        /* Dark Slate Background */
+            --card-bg: #1e293b;       /* Dark Card Background */
+            --text-main: #f8fafc;     /* Bright White Text */
+            --text-muted: #94a3b8;    /* Muted Slate Text */
+            --accent-blue: #38bdf8;   /* Sky Blue */
+            --accent-green: #22c55e;  /* Emerald Green */
+            --accent-red: #ef4444;    /* Crimson Red */
+            --accent-gold: #f59e0b;   /* Amber Gold */
+            --border-color: #334155;  /* Subtle Slate Border */
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            margin: 0; 
+            padding: 24px; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+        }
+
+        .header { margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
+        .header h1 { margin: 0 0 8px 0; font-size: 26px; color: var(--accent-blue); font-weight: 700; }
+        .header p { margin: 0 0 16px 0; font-size: 14px; color: var(--text-muted); }
+
+        .assumptions-badge {
+            display: inline-block;
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .nav-container { margin-top: 16px; display: flex; gap: 10px; }
+        .nav-btn { 
+            background-color: var(--card-bg); 
+            color: var(--text-muted); 
+            border: 1px solid var(--border-color); 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            font-size: 14px; 
+            transition: all 0.2s ease;
+        }
+        .nav-btn:hover { color: var(--text-main); border-color: var(--accent-blue); }
+        .nav-btn.active { background-color: var(--accent-blue); color: #0f172a; border-color: var(--accent-blue); }
+
+        .main-layout { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+        
+        /* Box Mode Kiri */
+        .left-box { 
+            background-color: var(--card-bg); 
+            padding: 24px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color);
+            width: 360px; 
+            box-sizing: border-box; 
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .left-box h3 { margin: 0 0 4px 0; font-size: 18px; color: var(--text-main); }
+        
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label { font-weight: 600; font-size: 13px; color: var(--text-muted); }
+        .input-group input { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border-radius: 6px; 
+            border: 1px solid var(--border-color); 
+            background-color: #0f172a;
+            color: var(--text-main);
+            box-sizing: border-box; 
+            font-size: 14px;
+        }
+        .input-group input:focus { outline: none; border-color: var(--accent-blue); }
+
+        .action-btn { 
+            width: 100%; 
+            padding: 12px; 
+            background-color: var(--accent-green); 
+            color: #0f172a; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-size: 14px; 
+            margin-top: 8px;
+            transition: opacity 0.2s;
+        }
+        .action-btn:hover { opacity: 0.9; }
+
+        /* Area Kanan */
+        .right-layout { flex: 1; display: flex; flex-direction: column; gap: 16px; min-width: 320px; }
+        
+        /* Display Roulette Lingkaran */
+        .roulette-circle-container { display: flex; justify-content: center; align-items: center; }
+        .roulette-circle { 
+            width: 80px; 
+            height: 80px; 
+            border-radius: 50%; 
+            background-color: var(--accent-red); 
+            color: var(--text-main); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-weight: 800; 
+            text-align: center; 
+            font-size: 20px; 
+            border: 4px solid var(--card-bg);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5); 
+        }
+
+        /* Box Papan Angka 0-36 */
+        .board-container { 
+            background-color: var(--card-bg); 
+            padding: 16px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color);
+        }
+        .board-title { font-weight: 600; margin-bottom: 10px; font-size: 13px; color: var(--text-muted); }
+        .board-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; text-align: center; font-weight: 700; font-size: 12px; }
+        .cell { padding: 8px 0; border-radius: 4px; background: #0f172a; color: var(--text-muted); border: 1px solid var(--border-color); }
+        .cell.green { background-color: #065f46; color: #a7f3d0; }
+        .cell.red { background-color: #991b1b; color: #fecaca; }
+        .cell.black { background-color: #1e293b; color: #cbd5e1; }
+        .cell.active-highlight { 
+            outline: 2px solid var(--accent-gold); 
+            background-color: var(--accent-gold) !important;
+            color: #0f172a !important;
+            transform: scale(1.1); 
+            z-index: 2; 
+        }
+
+        /* Box Grafik Kartesius */
+        .graph-container { 
+            background-color: var(--card-bg); 
+            padding: 16px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color);
+            height: 250px; 
+        }
+        
+        /* Box Ringkasan Evaluasi & Status Ronde */
+        .result-summary { 
+            background-color: #0f172a; 
+            border: 1px solid var(--border-color);
+            padding: 12px 14px; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            line-height: 1.6;
+        }
+        .result-summary b { color: var(--accent-blue); display: block; margin-bottom: 4px; font-size: 14px; }
+        .stat-row { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding: 4px 0; }
+        .stat-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Simulasi Numerik Monte Carlo: European Roulette</h1>
+        <p>Aplikasi web untuk menguji probabilitas kemenangan, ketahanan modal, dan House Edge (2.7%).</p>
+        <div class="assumptions-badge">⚠ Catatan Asumsi: Pemain SELALU memasang taruhan pada warna MERAH.</div>
+        
+        <div class="nav-container">
+            <button class="nav-btn active" id="btnMode1" onclick="switchMode(1)">Mode 1 (Instan)</button>
+            <button class="nav-btn" id="btnMode2" onclick="switchMode(2)">Mode 2 (Interaktif)</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <!-- BOX KIRI (Mode 1 / Mode 2) -->
+        <div class="left-box">
+            <!-- Tampilan Mode 1 -->
+            <div id="panelMode1">
+                <h3>Mode 1: Simulasi Instan</h3>
+                <div class="input-group">
+                    <label>Modal Awal ($):</label>
+                    <input type="number" id="m1_modal" value="1000">
+                </div>
+                <div class="input-group">
+                    <label>Taruhan per Ronde ($):</label>
+                    <input type="number" id="m1_bet" value="10">
+                </div>
+                <div class="input-group">
+                    <label>Total Target Putaran (N):</label>
+                    <input type="number" id="m1_iter" value="10000">
+                </div>
+                <button class="action-btn" onclick="runSimulasiMode1()">Jalankan Simulasi Monte Carlo</button>
+                
+                <div id="m1_res" class="result-summary" style="display:none; margin-top:12px;">
+                    <b>Hasil Evaluasi Simulasi:</b>
+                    <div class="stat-row"><span>Total Ronde Berjalan:</span> <strong id="res_total_round">0</strong></div>
+                    <div class="stat-row"><span>Total Win (Menang):</span> <strong id="res_total_win" style="color:var(--accent-green)">0</strong></div>
+                    <div class="stat-row"><span>Total Lose (Kalah):</span> <strong id="res_total_lose" style="color:var(--accent-red)">0</strong></div>
+                    <div class="stat-row"><span>Modal Akhir:</span> <strong id="res_modal">$0</strong></div>
+                    <div class="stat-row"><span>Calculated House Edge:</span> <strong id="res_edge" style="color:var(--accent-gold)">0%</strong></div>
+                </div>
+            </div>
+
+            <!-- Tampilan Mode 2 -->
+            <div id="panelMode2" style="display:none;">
+                <h3>Mode 2: Real-Time Game</h3>
+                <div class="input-group">
+                    <label>Sisa Modal saat ini ($):</label>
+                    <input type="number" id="m2_modal" value="250" readonly>
+                </div>
+                <div class="input-group">
+                    <label>Pasang Taruhan (Merah) ($):</label>
+                    <input type="number" id="m2_bet" value="10">
+                </div>
+                <button class="action-btn" onclick="playRondeMode2()">Putar Roda Roulette</button>
+
+                <div id="m2_res" class="result-summary" style="display:none; margin-top:12px;">
+                    <b>Status Ronde Terakhir:</b>
+                    <div class="stat-row"><span>Angka Keluar:</span> <strong id="m2_angka">-</strong></div>
+                    <div class="stat-row"><span>Hasil Ronde Ini:</span> <strong id="m2_status">-</strong></div>
+                    <div class="stat-row"><span>Total Ronde (Game):</span> <strong id="m2_total_round">0</strong></div>
+                    <div class="stat-row"><span>Total Win (Menang):</span> <strong id="m2_total_win" style="color:var(--accent-green)">0</strong></div>
+                    <div class="stat-row"><span>Total Lose (Kalah):</span> <strong id="m2_total_lose" style="color:var(--accent-red)">0</strong></div>
+                    <div class="stat-row"><span>Risiko Kebangkrutan:</span> <strong id="m2_risk" style="color:var(--accent-gold)">-</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AREA KANAN -->
+        <div class="right-layout">
+            <!-- Lingkaran UI Roulette -->
+            <div class="roulette-circle-container">
+                <div class="roulette-circle" id="circleDisplay">0</div>
+            </div>
+
+            <!-- Papan Box 0-36 -->
+            <div class="board-container">
+                <div class="board-title">Papan Angka European Roulette (0-36)</div>
+                <div class="board-grid" id="boardGrid"></div>
+            </div>
+
+            <!-- Grafik Kartesius -->
+            <div class="graph-container">
+                <canvas id="cartesianChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Array Resmi Angka Merah pada European Roulette
+        const redNumbers = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+        let chartInstance = null;
+        let currentMode = 1;
+        
+        // Tracking Mode 2
+        let m2_round = 0;
+        let m2_wins = 0;
+        let m2_loses = 0;
+        let mode2DataY = [250];
+        let mode2DataX = [0];
+
+        function initBoard() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+            
+            let div0 = document.createElement('div');
+            div0.className = 'cell green';
+            div0.id = 'cell-0';
+            div0.innerText = '0';
+            grid.appendChild(div0);
+
+            for (let i = 1; i <= 36; i++) {
+                let div = document.createElement('div');
+                let colorClass = redNumbers.includes(i) ? 'red' : 'black';
+                div.className = `cell ${colorClass}`;
+                div.id = `cell-${i}`;
+                div.innerText = i;
+                grid.appendChild(div);
+            }
+        }
+
+        function highlightNumber(num) {
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('active-highlight'));
+            let targetCell = document.getElementById(`cell-${num}`);
+            if (targetCell) targetCell.classList.add('active-highlight');
+
+            let circle = document.getElementById('circleDisplay');
+            circle.innerText = num;
+            if (num === 0) circle.style.backgroundColor = '#065f46';
+            else if (redNumbers.includes(num)) circle.style.backgroundColor = '#991b1b';
+            else circle.style.backgroundColor = '#1e293b';
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnMode1').classList.toggle('active', mode === 1);
+            document.getElementById('btnMode2').classList.toggle('active', mode === 2);
+            document.getElementById('panelMode1').style.display = mode === 1 ? 'block' : 'none';
+            document.getElementById('panelMode2').style.display = mode === 2 ? 'block' : 'none';
+            resetChart();
+        }
+
+        function resetChart() {
+            const ctx = document.getElementById('cartesianChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [0],
+                    datasets: [{
+                        label: 'Modal Player ($)',
+                        data: [currentMode === 1 ? parseFloat(document.getElementById('m1_modal').value) : parseFloat(document.getElementById('m2_modal').value)],
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Total Putaran (Sumbu X)', color: '#94a3b8' },
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: '#334155' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Sisa Modal ($) (Sumbu Y)', color: '#94a3b8' },
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: '#334155' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#f8fafc' } }
+                    }
+                }
+            });
+        }
+
+        // SIMULASI MODE 1
+        function runSimulasiMode1() {
+            let modal = parseFloat(document.getElementById('m1_modal').value);
+            let bet = parseFloat(document.getElementById('m1_bet').value);
+            let iter = parseInt(document.getElementById('m1_iter').value);
+            let modalAwal = modal;
+
+            let totalWins = 0;
+            let totalLoses = 0;
+            let totalBetAmount = 0;
+            let historyX = [0];
+            let historyY = [modalAwal];
+            let lastNum = 0;
+            let actualRounds = 0;
+
+            for (let i = 1; i <= iter; i++) {
+                if (modal < bet) break; // Berhenti jika modal tidak cukup
+                
+                actualRounds++;
+                totalBetAmount += bet;
+                lastNum = Math.floor(Math.random() * 37);
+
+                // CEK KEMENANGAN SESUAI ATURAN TABLE (Sesuai Array redNumbers)
+                if (redNumbers.includes(lastNum)) { 
+                    totalWins++;
+                    modal += bet;
+                } else {
+                    totalLoses++;
+                    modal -= bet;
+                }
+
+                // Ambil sampel data grafik agar efisien secara komputasional
+                if (i % Math.max(1, Math.floor(iter / 100)) === 0 || i === iter) {
+                    historyX.push(i);
+                    historyY.push(modal);
+                }
+            }
+
+            highlightNumber(lastNum);
+
+            // House Edge = (Keuntungan Bandar / Total Uang Dipertaruhkan) * 100%
+            let bandarProfit = modalAwal - modal;
+            let houseEdge = totalBetAmount > 0 ? ((bandarProfit / totalBetAmount) * 100).toFixed(2) : "0.00";
+
+            document.getElementById('res_total_round').innerText = actualRounds;
+            document.getElementById('res_total_win').innerText = totalWins;
+            document.getElementById('res_total_lose').innerText = totalLoses;
+            document.getElementById('res_modal').innerText = "$" + modal;
+            document.getElementById('res_edge').innerText = houseEdge + "%";
+            document.getElementById('m1_res').style.display = 'block';
+
+            // Update Chart
+            chartInstance.data.labels = historyX;
+            chartInstance.data.datasets[0].data = historyY;
+            chartInstance.update();
+        }
+
+        // GAME MODE 2 (INTERAKTIF)
+        function playRondeMode2() {
+            let modal = parseFloat(document.getElementById('m2_modal').value);
+            let bet = parseFloat(document.getElementById('m2_bet').value);
+
+            if (modal < bet) {
+                alert("Modal tidak mencukupi untuk pasang taruhan!");
+                return;
+            }
+
+            m2_round++;
+            let num = Math.floor(Math.random() * 37);
+            
+            // CEK KEMENANGAN SESUAI ATURAN TABLE
+            let isWin = redNumbers.includes(num);
+
+            if (isWin) {
+                m2_wins++;
+                modal += bet;
+            } else {
+                m2_loses++;
+                modal -= bet;
+            }
+
+            document.getElementById('m2_modal').value = modal;
+            highlightNumber(num);
+
+            document.getElementById('m2_angka').innerText = num;
+            document.getElementById('m2_status').innerText = isWin ? "MENANG (Merah)" : "KALAH (" + (num === 0 ? "Hijau 0" : "Hitam") + ")";
+            document.getElementById('m2_total_round').innerText = m2_round;
+            document.getElementById('m2_total_win').innerText = m2_wins;
+            document.getElementById('m2_total_lose').innerText = m2_loses;
+
+            let ratio = bet / modal;
+            let riskText = "Sangat Rendah (<10%)";
+            if (ratio > 0.2) riskText = "Tinggi (>20% Modal)";
+            else if (ratio > 0.1) riskText = "Sedang (10-20% Modal)";
+            
+            document.getElementById('m2_risk').innerText = riskText;
+            document.getElementById('m2_res').style.display = 'block';
+
+            // Update Chart
+            mode2DataX.push(m2_round);
+            mode2DataY.push(modal);
+            chartInstance.data.labels = mode2DataX;
+            chartInstance.data.datasets[0].data = mode2DataY;
+            chartInstance.update();
+        }
+
+        window.onload = function() {
+            initBoard();
+            resetChart();
+        };
+    </script>
+</body>
+</html>
