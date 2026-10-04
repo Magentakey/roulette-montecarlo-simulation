@@ -15,7 +15,7 @@ Perjudian *European Roulette* secara teoretis memiliki nilai ekspektasi negatif 
 
 Aplikasi ini dikembangkan untuk membuktikan secara empiris **Hukum Bilangan Besar (*Law of Large Numbers*)**:
 
-> *"Meskipun potongan bandar tergolong kecil pada setiap transaksi individu, pengulangan taruhan dalam skala sampel masif ($N \ge 10.000$) secara pasti akan mengikis modal pemain hingga mengalami kebangkrutan total."*
+> "Meskipun potongan bandar tergolong kecil pada setiap transaksi individu, pengulangan taruhan dalam skala sampel masif ($N \geq 10.000$) secara pasti akan mengikis modal pemain hingga mengalami kebangkrutan total."
 
 ---
 
@@ -23,7 +23,7 @@ Aplikasi ini dikembangkan untuk membuktikan secara empiris **Hukum Bilangan Besa
 
 Aplikasi ini menyediakan dua mode simulasi komputasional interaktif:
 
-### 1. ⚡ Mode 1: Simulasi Instan Monte Carlo ($N \le 10.000$)
+### 1. ⚡ Mode 1: Simulasi Instan Monte Carlo ($N \leq 10.000$)
 
 * **Pengujian Skala Masif:** Eksekusi perulangan numerik hingga 10.000 putaran dalam hitungan milidetik.
 * **Evaluasi Parameter Finansial:** Menghitung total ronde berjalan, *Total Win*, *Total Lose*, Sisa Modal Akhir, dan kalkulasi empiris *House Edge*.
