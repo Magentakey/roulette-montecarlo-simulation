@@ -275,6 +275,13 @@
         let mode2DataY = [MODE2_MODAL_AWAL];
         let mode2DataX = [0];
 
+        // Aturan titik yang digambar di chart Mode 2
+        function shouldPlot(round) {
+            if (round < 100) return true;              // 1-99    -> tiap 1
+            if (round < 1000) return round % 10 === 0; // 100-999 -> tiap 10
+            return round % 100 === 0;                  // 1000+   -> tiap 100
+        }
+
         function initBoard() {
             const grid = document.getElementById('boardGrid');
             grid.innerHTML = '';
@@ -460,12 +467,24 @@
             document.getElementById('m2_risk').innerText = riskText;
             document.getElementById('m2_res').style.display = 'block';
 
-            // Update Chart
-            mode2DataX.push(m2_round);
-            mode2DataY.push(modal);
-            chartInstance.data.labels = mode2DataX;
-            chartInstance.data.datasets[0].data = mode2DataY;
-            chartInstance.update();
+            // Update Chart (hanya titik hasil sampling)
+            if (shouldPlot(m2_round)) {
+                mode2DataX.push(m2_round);
+                mode2DataY.push(modal);
+            }
+
+            // Kalau ronde terakhir tidak termasuk sampel, tampilkan sebagai titik tambahan
+            // supaya ujung grafik selalu sesuai kondisi modal sekarang
+            let labels = mode2DataX;
+            let data = mode2DataY;
+            if (mode2DataX[mode2DataX.length - 1] !== m2_round) {
+                labels = [...mode2DataX, m2_round];
+                data = [...mode2DataY, modal];
+            }
+
+            chartInstance.data.labels = labels;
+            chartInstance.data.datasets[0].data = data;
+            chartInstance.update('none'); // 'none' = tanpa animasi
         }
 
         window.onload = function() {
