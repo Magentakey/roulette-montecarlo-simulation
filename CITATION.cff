@@ -4,6 +4,7 @@ title: "Simulasi Numerik Monte Carlo untuk Estimasi Probabilitas Kemenangan dan 
 version: 2.0.0
 date-released: 2026-10-27
 license: MIT
+doi: 10.5281/zenodo.23676480
 repository-code: "https://github.com/Magentakey/roulette-montecarlo-simulation"
 url: "https://magentakey.github.io/roulette-montecarlo-simulation/"
 authors:
