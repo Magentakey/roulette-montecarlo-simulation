@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "Jika memakai perangkat lunak ini, mohon sitasi sebagai berikut."
+title: "Simulasi Numerik Monte Carlo untuk Estimasi Probabilitas Kemenangan dan House Edge pada Roulette"
+version: 2.0.0
+date-released: 2026-10-27
+license: MIT
+repository-code: "https://github.com/Magentakey/roulette-montecarlo-simulation"
+url: "https://magentakey.github.io/roulette-montecarlo-simulation/"
+authors:
+  - family-names: Sunarto
+    given-names: Ramdhany
+    affiliation: "Program Studi Informatika, Institut Teknologi Indonesia"
+keywords: [Monte Carlo, roulette, house edge, gambler's ruin, metode numerik]

@@ -1,0 +1,11 @@
+{
+  "name": "roulette-montecarlo-simulation",
+  "version": "2.0.0",
+  "description": "Simulasi Numerik Monte Carlo untuk estimasi probabilitas kemenangan dan House Edge pada Roulette",
+  "license": "MIT",
+  "scripts": {
+    "test": "node test.js",
+    "sim": "node sim_roulette.js",
+    "sim:seed": "node sim_roulette.js --rng=seed --seed=roulette-montecarlo-2026"
+  }
+}

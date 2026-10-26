@@ -1,0 +1,7 @@
+{
+  "title": "Simulasi Numerik Monte Carlo untuk Estimasi Probabilitas Kemenangan dan House Edge pada Roulette",
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [{ "name": "Sunarto, Ramdhany", "affiliation": "Institut Teknologi Indonesia" }],
+  "keywords": ["Monte Carlo", "roulette", "house edge", "gambler's ruin", "metode numerik"]
+}

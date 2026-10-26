@@ -1,79 +1,163 @@
-// Simulasi Monte Carlo European Roulette (taruhan MERAH)
-// Logika setara dengan index.html (Mode 1): berhenti jika N tercapai atau modal < taruhan.
-// Jalankan : node sim_roulette.js     (butuh Node.js; tanpa library tambahan)
-// Keluaran : ringkasan di terminal + berkas results.json
-// Catatan  : Math.random() tidak bisa diberi seed, sehingga angka tiap eksekusi
-//            sedikit berbeda; kesimpulannya (House Edge gabungan ~2,70%) sama.
-const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
-const spin = () => Math.floor(Math.random() * 37);
+// Simulasi massal Monte Carlo Roulette (taruhan MERAH) — Node.js, tanpa library tambahan.
+// Memakai roulette-core.js, logika identik dengan Mode 1 dan Mode 3 di index.html.
+//
+// Pemakaian:
+//   node sim_roulette.js                          (default: Math.random, hasil berbeda tiap eksekusi)
+//   node sim_roulette.js --rng=seed --seed=abc    (hasil dapat diulang persis)
+//   node sim_roulette.js --rng=crypto
+//   node sim_roulette.js --quick                  (ukuran dikecilkan ~10x untuk uji cepat / CI)
+// Opsi lain: --rule=european|lapartage|american  --modal=1000 --bet=10 --n=10000
+//            --sessions=10000 --boot=1000 --out=results.json --raw=0 (tanpa data mentah)
+//
+// Eksperimen:
+//   E2 replikasi 10.000 sesi (+ rentang Wilson dan bootstrap)
+//   E3 konvergensi House Edge tanpa batas kebangkrutan
+//   E4 uji keseragaman generator (chi-square)
+//   E5 pembanding analitis gambler's ruin (rekursi eksak)
+//   E6 perbandingan strategi (flat, Martingale, D'Alembert, Fibonacci) + VaR/CVaR
+//   E7 perbandingan aturan roda (European, La Partage, American)
+//   E8 uji independensi (runs, autokorelasi lag-1, serial)
+'use strict';
+const fs = require('fs');
+const Core = require('./roulette-core.js');
 
-// Logika Mode 1: berhenti jika N tercapai atau modal < taruhan
-function mode1(M0, b, N) {
-  let cap = M0, rounds = 0, win = 0, lose = 0;
-  while (rounds < N && cap >= b) {
-    rounds++;
-    if (RED.has(spin())) { cap += b; win++; } else { cap -= b; lose++; }
-  }
-  const he = rounds > 0 ? (M0 - cap) / (rounds * b) * 100 : 0;
-  return { rounds, win, lose, cap, he, ruined: cap < b };
+// ---------- argumen ----------
+const args = {};
+process.argv.slice(2).forEach(a => {
+  const m = a.match(/^--([^=]+)(?:=(.*))?$/);
+  if (m) args[m[1]] = m[2] === undefined ? true : m[2];
+});
+const quick = !!args.quick;
+const rngKind = args.rng || 'math';
+const seed = args.seed !== undefined ? String(args.seed) : (rngKind === 'seed' ? 'roulette-montecarlo-2026' : '');
+const rule = args.rule || 'european';
+const M0 = parseFloat(args.modal || 1000), b = parseFloat(args.bet || 10), N = parseInt(args.n || 10000, 10);
+const S = parseInt(args.sessions || (quick ? 2000 : 10000), 10);
+const B = parseInt(args.boot || (quick ? 300 : 1000), 10);
+const outFile = args.out || 'results.json';
+const keepRaw = args.raw !== '0';
+const scale = quick ? 0.1 : 1;
+
+const mk = tag => Core.makeRng({ kind: rngKind, seed: seed + '|' + tag });
+const baseCfg = { M0, b, N, rule, strategy: 'flat', tableMax: Infinity };
+const err = Core.validateConfig(baseCfg);
+if (err) { console.error('Parameter tidak valid: ' + err); process.exit(1); }
+
+const f2 = x => (Number.isFinite(x) ? x.toFixed(2) : String(x));
+const f4 = x => (Number.isFinite(x) ? x.toFixed(4) : String(x));
+const pct = x => f2(x * 100) + '%';
+const th = Core.theory(rule);
+const out = { meta: { generator: rngKind, seed: rngKind === 'seed' ? seed : null, rule, M0, b, N, sessions: S, quick } };
+
+console.log('Generator: ' + rngKind + (rngKind === 'seed' ? ' (seed "' + seed + '")' : '') + ' | aturan: ' + Core.RULES[rule].label +
+  ' | HE teoretis ' + f2(th.he * 100) + '%');
+
+// ---------- E2: replikasi sesi ----------
+function runBatch(cfg, sessions, tag) {
+  const spec = { kind: rngKind, seed: seed + '|' + tag };
+  const batch = Core.createBatch(cfg, sessions, spec);
+  while (!batch.step(1000)) { /* sinkron */ }
+  return { batch, summary: Core.summarize(batch, { B, rngSpec: spec }) };
+}
+const e2 = runBatch(baseCfg, S, 'E2');
+const s2 = e2.summary;
+out.e2 = { summary: stripHist(s2) };
+if (keepRaw) {
+  const A = e2.batch.arrays;
+  out.e2.sessions = Array.from({ length: S }, (_, i) => [A.rounds[i], A.wins[i], A.losses[i], A.cap[i], +((A.turnover[i] > 0 ? (M0 - A.cap[i]) / A.turnover[i] * 100 : 0)).toFixed(4), A.ruined[i]]);
+  out.e2.sessionColumns = ['ronde', 'menang', 'kalah', 'modal_akhir', 'house_edge_persen', 'bangkrut'];
+}
+console.log('\n=== E2: ' + S + ' sesi (modal ' + M0 + ', taruhan ' + b + ', N ' + N + ') ===');
+console.log('Sesi bangkrut        : ' + pct(s2.ruin.p) + '  [Wilson 95%: ' + pct(s2.ruin.lo) + ' – ' + pct(s2.ruin.hi) + ']');
+console.log('Ronde s.d. bangkrut  : rata-rata ' + Math.round(s2.roundsToRuin.mean) + ', median ' + Math.round(s2.roundsToRuin.median) + ', SD ' + Math.round(s2.roundsToRuin.sd));
+console.log('House Edge per sesi  : rata-rata ' + f2(s2.hePerSession.mean) + '%, median ' + f2(s2.hePerSession.median) + '%, SD ' + f2(s2.hePerSession.sd) + '%');
+console.log('House Edge gabungan  : ' + f2(s2.hePooled.value) + '%  [bootstrap 95%: ' + f2(s2.hePooled.lo) + ' – ' + f2(s2.hePooled.hi) + ']  (teoretis ' + f2(th.he * 100) + '%)');
+console.log('Persentase menang    : ' + pct(s2.win.p) + '  (teoretis ' + pct(th.pWin) + ')');
+if (s2.identity.applicable) console.log('Sesi bangkrut dgn HE = 100·K/n persis: ' + pct(s2.identity.share) + '  (HE sesi bangkrut hanya fungsi dari n)');
+console.log('VaR/CVaR kerugian    : 95% → ' + f2(s2.risk.var95) + ' / ' + f2(s2.risk.cvar95) + ' ; 99% → ' + f2(s2.risk.var99) + ' / ' + f2(s2.risk.cvar99));
+
+// ---------- E5: analitis ----------
+if (s2.analytic.available) {
+  const a = s2.analytic;
+  out.e5 = { pRuin: a.pRuin, medianCond: a.medianCond, meanCond: a.meanCond, waldMean: a.waldMean, zRuin: a.zRuin };
+  console.log('\n=== E5: pembanding analitis gambler\'s ruin (flat) ===');
+  console.log('P(bangkrut ≤ N)      : simulasi ' + pct(s2.ruin.p) + ' vs eksak ' + pct(a.pRuin) + '  (z = ' + f2(a.zRuin) + ')');
+  console.log('Median ronde bangkrut: simulasi ' + Math.round(s2.roundsToRuin.median) + ' vs eksak ' + a.medianCond);
+  console.log('Rata-rata (N = ∞)    : Wald ≈ ' + Math.round(a.waldMean) + ' ronde');
+  const hor = [100, 1000, 10000, 20000, 30000];
+  const ruinTable = hor.map(h => ({ horizon: h, pRuin: Core.exactRuin(rule, M0, b, h).pRuin }));
+  out.e5.byHorizon = ruinTable;
+  console.log('Peluang bangkrut eksak menurut horizon: ' + ruinTable.map(r => r.horizon + ' → ' + pct(r.pRuin)).join('; '));
 }
 
-const out = {};
-
-// E2: 10.000 sesi dengan parameter yang sama seperti Mode 1
-const S = 10000, sessions = [];
-for (let i = 0; i < S; i++) sessions.push(mode1(1000, 10, 10000));
-out.sessions = sessions.map(s => [s.rounds, s.win, s.lose, s.cap, +s.he.toFixed(4), s.ruined ? 1 : 0]);
-
-// E3: konvergensi tanpa batas kebangkrutan
-// (a) satu run 1.000.000 ronde, catat House Edge berjalan
-let net = 0; const run = [];
-const cps = new Set(); for (let e = 1; e <= 6; e += 0.05) cps.add(Math.round(10 ** e));
-for (let n = 1; n <= 1000000; n++) {
-  net += RED.has(spin()) ? 1 : -1;
-  if (cps.has(n)) run.push([n, -net / n * 100]);
+// ---------- E3: konvergensi tanpa batas kebangkrutan ----------
+console.log('\n=== E3: konvergensi House Edge tanpa batas kebangkrutan ===');
+{
+  const R = mk('E3').next, red = Core.RED, P = Core.RULES[rule].pockets, part = Core.RULES[rule].partage;
+  const outcome = () => { const x = Math.floor(R() * P); return red[x] === 1 ? 1 : (part && x === 0 ? -0.5 : -1); };
+  const runLen = Math.round(1e6 * (quick ? 0.1 : 1));
+  let net = 0; const run = [];
+  const cps = new Set(); for (let e = 1; e <= 6; e += 0.05) cps.add(Math.round(10 ** e));
+  for (let n = 1; n <= runLen; n++) { net += outcome(); if (cps.has(n)) run.push([n, -net / n * 100]); }
+  out.e3 = { run, conv: [] };
+  const Ns = [100, 1000, 10000, 100000, 1000000].filter(n => n <= runLen);
+  const reps0 = [2000, 2000, 1000, 300, 100];
+  console.log('N         sesi   rata-rata   SD empiris   SE teoretis');
+  Ns.forEach((n, k) => {
+    const reps = Math.max(20, Math.round(reps0[k] * scale)), hes = [];
+    for (let r = 0; r < reps; r++) { let s = 0; for (let i = 0; i < n; i++) s += outcome(); hes.push(-s / n * 100); }
+    out.e3.conv.push({ N: n, reps, hes: keepRaw ? hes.map(v => +v.toFixed(5)) : undefined, mean: Core.mean(hes), sd: Core.sd(hes) });
+    console.log(String(n).padEnd(9), String(reps).padEnd(6), (f2(Core.mean(hes)) + '%').padStart(9), (f2(Core.sd(hes)) + '%').padStart(11), (f2(100 * th.sigma / Math.sqrt(n)) + '%').padStart(11));
+  });
 }
-out.run = run;
-// (b) banyak sesi per ukuran N
-const Ns = [100, 1000, 10000, 100000, 1000000], reps = [2000, 2000, 1000, 300, 100];
-out.conv = Ns.map((N, k) => {
-  const hes = [];
-  for (let r = 0; r < reps[k]; r++) {
-    let nt = 0;
-    for (let n = 0; n < N; n++) nt += RED.has(spin()) ? 1 : -1;
-    hes.push(-nt / N * 100);
-  }
-  return { N, reps: reps[k], hes };
+
+// ---------- E4: uji keseragaman ----------
+{
+  const pockets = Core.RULES[rule].pockets, n = Math.round(1e6 * (quick ? 0.2 : 1));
+  const u = Core.uniformityTest(mk('E4').next, n, pockets);
+  out.e4 = u;
+  console.log('\n=== E4: uji chi-square keseragaman (' + n + ' pengundian) ===');
+  console.log('chi2 = ' + f2(u.chi2) + ' (df ' + u.df + ', kritis α=0,05: ' + f2(u.critical) + '), p = ' + f4(u.p) + ' → ' + (u.p > 0.05 ? 'H0 tidak ditolak (seragam)' : 'H0 ditolak'));
+}
+
+// ---------- E6: strategi ----------
+console.log('\n=== E6: perbandingan strategi (' + Core.RULES[rule].label + ', batas meja ' + (b * 50) + ' untuk strategi progresif) ===');
+console.log('Strategi      Bangkrut   HE gabungan   Modal akhir rata2   VaR95 / CVaR95 kerugian');
+out.e6 = [];
+Object.keys(Core.STRATEGIES).forEach(st => {
+  const cfg = Object.assign({}, baseCfg, { strategy: st, tableMax: st === 'flat' ? Infinity : b * 50 });
+  const r = runBatch(cfg, Math.max(500, Math.round(S / 2)), 'E6-' + st).summary;
+  out.e6.push({ strategy: st, tableMax: cfg.tableMax === Infinity ? null : cfg.tableMax, ruin: r.ruin.p, hePooled: r.hePooled.value, heLo: r.hePooled.lo, heHi: r.hePooled.hi, meanFinal: r.finalCap.mean, var95: r.risk.var95, cvar95: r.risk.cvar95, var99: r.risk.var99, cvar99: r.risk.cvar99 });
+  console.log(st.padEnd(13), pct(r.ruin.p).padStart(8), (f2(r.hePooled.value) + '%').padStart(13), f2(r.finalCap.mean).padStart(19), (f2(r.risk.var95) + ' / ' + f2(r.risk.cvar95)).padStart(24));
 });
 
-// E4: uji keseragaman generator (1.000.000 pengundian)
-const cnt = new Array(37).fill(0);
-for (let i = 0; i < 1000000; i++) cnt[spin()]++;
-out.counts = cnt;
+// ---------- E7: aturan roda ----------
+console.log('\n=== E7: perbandingan aturan roda (flat) ===');
+console.log('Aturan                    HE teoretis   HE gabungan [bootstrap 95%]    Bangkrut sim / eksak');
+out.e7 = [];
+Object.keys(Core.RULES).forEach(rid => {
+  const cfg = Object.assign({}, baseCfg, { rule: rid });
+  const r = runBatch(cfg, S, 'E7-' + rid).summary, t = Core.theory(rid);
+  out.e7.push({ rule: rid, heTheory: t.he * 100, hePooled: r.hePooled.value, heLo: r.hePooled.lo, heHi: r.hePooled.hi, ruin: r.ruin.p, ruinExact: r.analytic.available ? r.analytic.pRuin : null });
+  console.log(Core.RULES[rid].label.padEnd(25), (f2(t.he * 100) + '%').padStart(10), ('   ' + f2(r.hePooled.value) + '% [' + f2(r.hePooled.lo) + ' – ' + f2(r.hePooled.hi) + ']').padEnd(32), pct(r.ruin.p) + ' / ' + (r.analytic.available ? pct(r.analytic.pRuin) : '—'));
+});
 
-require('fs').writeFileSync('results.json', JSON.stringify(out));
+// ---------- E8: independensi ----------
+{
+  const pockets = Core.RULES[rule].pockets, n = Math.round(1e6 * (quick ? 0.2 : 1));
+  const t = Core.independenceTests(mk('E8').next, n, pockets);
+  out.e8 = t;
+  console.log('\n=== E8: uji independensi antar putaran (' + n + ' putaran) ===');
+  console.log('Runs test (merah/bukan)  : runs = ' + t.runs.runs + ', harapan ' + f2(t.runs.expected) + ', z = ' + f2(t.runs.z) + ', p = ' + f4(t.runs.p));
+  console.log('Autokorelasi lag-1       : r = ' + t.autocorr.r1.toExponential(2) + ', z = ' + f2(t.autocorr.z) + ', p = ' + f4(t.autocorr.p));
+  console.log('Serial (pasangan, ' + pockets + '×' + pockets + ') : chi2 = ' + f2(t.serial.chi2) + ' (df ' + t.serial.df + '), p = ' + f4(t.serial.p));
+  console.log('→ ' + ((t.runs.p > 0.05 && t.autocorr.p > 0.05 && t.serial.p > 0.05) ? 'tidak ada bukti ketergantungan antar putaran' : 'ada uji yang menolak H0 pada α = 0,05 (dengan 3 uji, satu penolakan kebetulan terjadi ≈ 14% dari waktu)'));
+}
 
-// ---------- Ringkasan di terminal ----------
-const f2 = x => x.toFixed(2);
-const mean = a => a.reduce((p, c) => p + c, 0) / a.length;
-const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((p, c) => p + (c - m) ** 2, 0) / (a.length - 1)); };
-const med = a => { const b = [...a].sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
-const ruinRounds = sessions.filter(s => s.ruined).map(s => s.rounds);
-const totLoss = sessions.reduce((p, s) => p + (1000 - s.cap), 0);
-const totTurn = sessions.reduce((p, s) => p + s.rounds * 10, 0);
-const totWin = sessions.reduce((p, s) => p + s.win, 0);
-const totRounds = sessions.reduce((p, s) => p + s.rounds, 0);
-console.log('\n=== E2: ' + S + ' sesi Mode 1 (modal 1000, taruhan 10, N 10000) ===');
-console.log('Sesi bangkrut        : ' + f2(ruinRounds.length / S * 100) + '%');
-console.log('Ronde s.d. bangkrut  : rata-rata ' + Math.round(mean(ruinRounds)) + ', median ' + med(ruinRounds));
-console.log('House Edge per sesi  : rata-rata ' + f2(mean(sessions.map(s => s.he))) + '%, SD ' + f2(sd(sessions.map(s => s.he))) + '%');
-console.log('House Edge gabungan  : ' + f2(totLoss / totTurn * 100) + '%  (teoretis 2.70%)');
-console.log('Persentase menang    : ' + f2(totWin / totRounds * 100) + '%  (teoretis 48.65%)');
-console.log('\n=== E3: konvergensi House Edge tanpa batas kebangkrutan ===');
-console.log('N         sesi   rata-rata   SD empiris   SE teoretis');
-out.conv.forEach(c => console.log(String(c.N).padEnd(9), String(c.reps).padEnd(6), f2(mean(c.hes)).padStart(8) + '%', f2(sd(c.hes)).padStart(10) + '%', f2(100 * Math.sqrt(1 - 1 / 1369) / Math.sqrt(c.N)).padStart(10) + '%'));
-const expc = 1000000 / 37;
-const chi = cnt.reduce((p, c) => p + (c - expc) ** 2 / expc, 0);
-console.log('\n=== E4: uji chi-square keseragaman (1.000.000 pengundian) ===');
-console.log('chi2 = ' + f2(chi) + '  (df 36, nilai kritis alpha 0.05 = 50.998) -> ' + (chi < 50.998 ? 'H0 tidak ditolak (seragam)' : 'H0 ditolak'));
-console.log('\nSelesai. Data mentah disimpan di results.json');
+fs.writeFileSync(outFile, JSON.stringify(out));
+console.log('\nSelesai. Data disimpan di ' + outFile);
+
+function stripHist(s) {
+  const c = JSON.parse(JSON.stringify(s, (k, v) => (typeof v === 'number' && !Number.isFinite(v) ? null : v)));
+  delete c.hist; return c;
+}
