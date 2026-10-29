@@ -111,7 +111,7 @@ Metadata sitasi otomatis tersedia di `CITATION.cff` (tombol "Cite this repositor
 
 1. Georgiev, S., & Todorov, V. (2023). *Efficient Monte Carlo Methods for Multidimensional Modeling of Slot Machines Jackpot*. Mathematics, 11(2), 266. https://doi.org/10.3390/math11020266
 2. Sarnecki, M. (2026). *Comparison of the effectiveness of roulette betting strategies using Monte Carlo simulation*. Journal of Computer Sciences Institute, 40, 232–238. https://doi.org/10.35784/jcsi.9728
-3. Small, M., & Tse, C. K. (2012). *Predicting the outcome of roulette*. Chaos, 22(3), 033108. https://doi.org/10.1063/1.4728526
+3. Small, M., & Tse, C. K. (2012). *Predicting the outcome of roulette*. Chaos, 22(3), 033150. https://doi.org/10.1063/1.4753920
 4. Feller, W. (1968). *An Introduction to Probability Theory and Its Applications, Vol. I* (3rd ed.). Wiley.
 
 ## 📝 Lisensi
