@@ -1,6 +1,6 @@
 # 🎰 Simulasi Numerik Monte Carlo: Roulette
 
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black) ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23676480.svg)](https://doi.org/10.5281/zenodo.23676480)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black) ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23676479.svg)](https://doi.org/10.5281/zenodo.23676479)
 
 Aplikasi web untuk memodelkan dan mengevaluasi probabilitas kemenangan, risiko kebangkrutan (*Ruin Risk*), dan konvergensi *House Edge* pada **European Roulette** (serta variasi La Partage dan American) dengan **Simulasi Monte Carlo**, dibandingkan langsung dengan solusi analitis *gambler's ruin*.
 
@@ -94,9 +94,11 @@ node test.js
 
 ## 📦 Arsip dan Cara Mengutip
 
-Rilis **v2.0.0** diarsipkan di Zenodo: https://doi.org/10.5281/zenodo.23676480
+Rilis **v2.0.1** diarsipkan di Zenodo: https://doi.org/10.5281/zenodo.23825714
 
-> Sunarto, R. (2026). *Simulasi Numerik Monte Carlo untuk Estimasi Probabilitas Kemenangan dan House Edge pada Roulette* (v2.0.0) [Perangkat lunak]. Zenodo. https://doi.org/10.5281/zenodo.23676480
+DOI konsep (selalu mengarah ke versi terbaru): https://doi.org/10.5281/zenodo.23676479. Badge di atas memakai DOI konsep; untuk mengutip versi yang persis sama dengan artikel, pakai DOI versi di bawah.
+
+> Sunarto, R. (2026). *Simulasi Numerik Monte Carlo untuk Estimasi Probabilitas Kemenangan dan House Edge pada Roulette* (v2.0.1) [Perangkat lunak]. Zenodo. https://doi.org/10.5281/zenodo.23825714
 
 Metadata sitasi otomatis tersedia di `CITATION.cff` (tombol "Cite this repository" di GitHub).
 
