@@ -315,6 +315,44 @@
     return horizons.map(function (h) { return ex.cdf[h]; });
   }
 
+  /**
+   * Sebaran lama sesi hingga bangkrut untuk taruhan datar tanpa La Partage (European / American),
+   * lewat teorema waktu tumbukan (Feller, 1968): P(T = n) = (K/n) · P(S_n = −K), dengan K = M0/b unit
+   * dan S_n jalan acak ±1 (naik p, turun q). Dihitung langsung untuk K besar (mis. 10.000) tanpa rekursi
+   * penuh. Hanya n ≥ K dengan paritas sama dengan K yang bermassa. Mengembalikan peluang bangkrut dalam N
+   * ronde, median/rata-rata/SD bersyarat, dan fungsi percentileOf(n) = P(T ≤ n | T ≤ N).
+   */
+  function hittingTimeLaw(ruleId, M0, b, N) {
+    var rule = RULES[ruleId];
+    if (!rule || rule.partage) return null;
+    var th = theory(ruleId), p = th.pWin, q = th.pLose;
+    var K = Math.floor(M0 / b + EPS);
+    if (K < 1 || N < K) return null;
+    var lp = Math.log(p), lq = Math.log(q), cnt = Math.floor((N - K) / 2) + 1;
+    var ns = new Float64Array(cnt), pt = new Float64Array(cnt), cdf = new Float64Array(cnt);
+    var acc = 0, i, n, u, w;
+    for (i = 0; i < cnt; i++) {
+      n = K + 2 * i; u = (n - K) / 2; w = (n + K) / 2;
+      ns[i] = n;
+      pt[i] = (K / n) * Math.exp(lgamma(n + 1) - lgamma(u + 1) - lgamma(w + 1) + u * lp + w * lq);
+      acc += pt[i]; cdf[i] = acc;
+    }
+    var pRuin = acc, mean = 0, m2 = 0, median = NaN;
+    for (i = 0; i < cnt; i++) {
+      mean += ns[i] * pt[i]; m2 += ns[i] * ns[i] * pt[i];
+      if (isNaN(median) && cdf[i] >= 0.5 * pRuin) median = ns[i];
+    }
+    mean /= pRuin; m2 /= pRuin;
+    return {
+      units: K, pRuin: pRuin, medianCond: median, meanCond: mean, sdCond: Math.sqrt(Math.max(0, m2 - mean * mean)),
+      percentileOf: function (rounds) {
+        if (rounds < K) return 0;
+        var j = Math.min(cnt - 1, Math.floor((rounds - K) / 2));
+        return cdf[j] / pRuin;
+      }
+    };
+  }
+
   // ------------------------------------------------------------------ RINGKASAN BATCH
   function bootstrapRatio(loss, turn, he, B, rng) {
     var S = loss.length, est = new Float64Array(B), estM = new Float64Array(B);
@@ -505,7 +543,7 @@
     theory: theory, validateConfig: validateConfig,
     makeRng: makeRng, randomSeed: randomSeed,
     playSession: playSession, sessionHE: sessionHE, createBatch: createBatch, summarize: summarize,
-    exactRuin: exactRuin, ruinWithin: ruinWithin,
+    exactRuin: exactRuin, ruinWithin: ruinWithin, hittingTimeLaw: hittingTimeLaw,
     mean: mean, sd: sd, quantile: quantile, sortedCopy: sortedCopy, wilson: wilson, percentileRank: percentileRank, histogram: histogram,
     chiSqP: chiSqP, chiSqCritical: chiSqCritical, uniformityTest: uniformityTest, independenceTests: independenceTests
   };

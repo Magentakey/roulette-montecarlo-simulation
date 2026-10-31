@@ -72,14 +72,14 @@ Eksperimen: **E2** replikasi sesi, **E3** konvergensi tanpa batas kebangkrutan, 
 node test.js
 ```
 
-24 tes (deterministik, ber-seed), termasuk: RTP simulasi dalam ±3 SE dari teori untuk semua aturan, kecocokan rekursi eksak dengan enumerasi naif dan dengan angka 4,95% / 76,2% / 97,95%, kepatuhan batas meja, pola taruhan tiap strategi, serta uji independensi yang terbukti mampu mendeteksi generator buruk. Dijalankan otomatis di GitHub Actions (`.github/workflows/test.yml`).
+26 tes (deterministik, ber-seed), termasuk: kecocokan teorema waktu tumbukan (`hittingTimeLaw`, lama sesi untuk modal besar) dengan rekursi eksak, RTP simulasi dalam ±3 SE dari teori untuk semua aturan, kecocokan rekursi eksak dengan enumerasi naif dan dengan angka 4,95% / 76,2% / 97,95%, kepatuhan batas meja, pola taruhan tiap strategi, serta uji independensi yang terbukti mampu mendeteksi generator buruk. Dijalankan otomatis di GitHub Actions (`.github/workflows/test.yml`).
 
 ## 📂 Struktur Repositori
 
 ```
 ├── index.html          # Aplikasi web: Mode 1, 2, 3 (UI, Chart.js, Web Worker)
 ├── roulette-core.js    # Inti simulasi bersama (web, worker, Node.js): PRNG, aturan, strategi, solusi eksak, statistik
-├── sim_roulette.js     # Simulasi massal Node.js (E2–E8)
+├── sim_roulette.js     # Simulasi massal Node.js (E1–E8)
 ├── test.js             # Tes otomatis
 ├── results.json        # Hasil contoh ber-seed (reproduksibel)
 ├── CITATION.cff, .zenodo.json   # Metadata sitasi dan arsip DOI

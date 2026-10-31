@@ -179,5 +179,19 @@ test('VaR/CVaR: CVaR ≥ VaR dan kerugian maksimum = modal awal', () => {
   assert.ok(s.risk.cvar99 <= 1000 + 1e-9);
 });
 
+test('Teorema waktu tumbukan cocok dengan rekursi eksak (K = 100, N = 10.000)', () => {
+  const h = Core.hittingTimeLaw('european', 1000, 10, 10000), ex = Core.exactRuin('european', 1000, 10, 10000);
+  near(h.pRuin, ex.pRuin, 1e-9, 'peluang bangkrut');
+  assert.strictEqual(h.medianCond, ex.medianCond);
+  near(h.meanCond, ex.meanCond, 1e-6, 'rata-rata bersyarat');
+});
+test('Sesi tunggal K = 10.000: rata-rata 37K, bangkrut hampir pasti dalam 1.000.000 ronde', () => {
+  const h = Core.hittingTimeLaw('european', 100000, 10, 1000000);
+  near(h.meanCond, 370000, 1, 'rata-rata');
+  assert.ok(h.pRuin > 0.999999);
+  near(h.percentileOf(400376), 0.908, 0.001, 'persentil ronde 400.376');
+  assert.strictEqual(Core.hittingTimeLaw('lapartage', 1000, 10, 100), null);
+});
+
 console.log('\n' + passed + ' lulus, ' + failed + ' gagal');
 process.exit(failed ? 1 : 0);

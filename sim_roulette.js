@@ -10,6 +10,7 @@
 //            --sessions=10000 --boot=1000 --out=results.json --raw=0 (tanpa data mentah)
 //
 // Eksperimen:
+//   E1 pembanding analitis sesi tunggal Mode 1 (lama sesi eksak, tanpa simulasi acak)
 //   E2 replikasi 10.000 sesi (+ rentang Wilson dan bootstrap)
 //   E3 konvergensi House Edge tanpa batas kebangkrutan
 //   E4 uji keseragaman generator (chi-square)
@@ -88,6 +89,20 @@ if (s2.analytic.available) {
   const ruinTable = hor.map(h => ({ horizon: h, pRuin: Core.exactRuin(rule, M0, b, h).pRuin }));
   out.e5.byHorizon = ruinTable;
   console.log('Peluang bangkrut eksak menurut horizon: ' + ruinTable.map(r => r.horizon + ' → ' + pct(r.pRuin)).join('; '));
+}
+
+// ---------- E1: pembanding analitis sesi tunggal (Mode 1: modal 100.000, taruhan 10, N 1.000.000) ----------
+{
+  const e1M0 = parseFloat(args['e1-modal'] || 100000), e1N = parseInt(args['e1-n'] || 1000000, 10), e1Rounds = parseInt(args['e1-rounds'] || 400376, 10);
+  const h = Core.hittingTimeLaw(rule, e1M0, b, e1N);
+  if (h) {
+    const heSession = 100 * h.units / e1Rounds;
+    out.e1 = { M0: e1M0, b, N: e1N, units: h.units, pRuin: h.pRuin, waldMean: h.units / -th.mu, medianCond: h.medianCond, meanCond: h.meanCond, sdCond: h.sdCond, observedRounds: e1Rounds, percentile: h.percentileOf(e1Rounds), heSession };
+    console.log('\n=== E1: sesi tunggal, lama sesi eksak (modal ' + e1M0 + ', K = ' + h.units + ' unit, N ' + e1N + ') ===');
+    console.log('Peluang bangkrut ≤ N : ' + pct(h.pRuin) + ' ; lama harapan (Wald) ' + Math.round(out.e1.waldMean) + ' ronde');
+    console.log('Lama sesi            : median ' + h.medianCond + ', rata-rata ' + Math.round(h.meanCond) + ', SD ' + Math.round(h.sdCond));
+    console.log('Sesi ' + e1Rounds + ' ronde  : persentil ke-' + f2(h.percentileOf(e1Rounds) * 100) + ' ; HE sesi = 100·K/n = ' + f2(heSession) + '%');
+  }
 }
 
 // ---------- E3: konvergensi tanpa batas kebangkrutan ----------
